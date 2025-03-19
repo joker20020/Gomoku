@@ -3,10 +3,13 @@
 #include <iomanip>
 #include <vector>
 #include <string>
+#include <torch/torch.h>
 
 #define BOARD_SIZE 15
+#define LAST_NUM 8
 
 using namespace std;
+using namespace torch::indexing;
 
 // 棋子颜色枚举
 enum Color {
@@ -25,7 +28,7 @@ enum GameResult {
 
 // 棋盘类
 class GomokuBoard {
-private:
+protected:
     vector<vector<Color>> board;  // 15x15棋盘
     Color currentPlayer;         // 当前玩家
 
@@ -34,7 +37,7 @@ public:
     ~GomokuBoard();
     void InitializeBoard();      // 初始化棋盘
     void PrintBoard() const;     // 打印棋盘
-    bool PlacePiece(int row, int col, Color color);  // 落子
+    virtual bool PlacePiece(int row, int col, Color color);  // 落子
     Color GetPiece(int row, int col) const;
     bool IsValidMove(int row, int col) const;        // 判断落子是否合法
     Color GetCurrentPlayer() const;  // 获取当前玩家
@@ -48,7 +51,17 @@ public:
 
     static vector<pair<int, int>> GenerateLegalMoves(const GomokuBoard& board, Color player);
 
-private:
     // 判断当前落子是否形成五子连珠
     bool CheckWin(int row, int col, Color color) const;
+
+};
+
+class RlGomokuBoard :public GomokuBoard {
+private:
+    vector<pair<pair<int, int>, Color>> lastMoves;
+
+public:
+    RlGomokuBoard();
+    bool PlacePiece(int row, int col, Color color) override;  // 落子
+    torch::Tensor DumpBoard();
 };

@@ -1,14 +1,18 @@
 ﻿#include "game.h"
 
-ChessGame::~ChessGame(){
-
+ChessGame::ChessGame() {
+    this->currentPlayer = BLACK;
 }
 
-ChessGame::ChessGame(GomokuBoard *board, Color aiColor){
+ChessGame::ChessGame(GomokuBoard* board, Color aiColor) {
     this->currentPlayer = BLACK;
     this->ai = *(new MCTSAI(*board, aiColor));
     this->aiColor = ai.root->currentPlayer;
     this->board = board;
+}
+
+ChessGame::~ChessGame(){
+    delete &ai;
 }
 
 void ChessGame::Start() {
@@ -22,7 +26,7 @@ void ChessGame::Start() {
         
         if (currentPlayer == aiColor) {
             time(&startTime);
-            ai.ParallelRun(20000);
+            ai.ParallelRun(2000);
             time(&endTime);
             cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
             bestMove = ai.GetBestMove();
@@ -94,4 +98,68 @@ vector<pair<int, int>> ChessGame::ParseInput(const string& input) {
     positions.push_back({startRow, startCol});
     positions.push_back({endRow, endCol});
     return positions;
+}
+
+RlChessGame::RlChessGame(RlGomokuBoard* board, Color aiColor, shared_ptr<MCTSModel> model) {
+    this->currentPlayer = BLACK;
+    this->ai = *(new RlMCTSAI(*board, aiColor, model));
+    this->aiColor = ai.root->currentPlayer;
+    this->board = board;
+}
+
+RlChessGame::~RlChessGame() {
+    delete& ai;
+}
+
+void RlChessGame::Start() {
+    time_t startTime, endTime;
+    int row, col;
+    bool gameOver = false;
+    pair<int, int> bestMove;
+    while (!gameOver) {
+        board->PrintBoard();
+        currentPlayer = board->GetCurrentPlayer();
+
+        if (currentPlayer == aiColor) {
+            time(&startTime);
+            ai.ParallelRun(1000);
+            time(&endTime);
+            cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
+            bestMove = ai.GetBestMove();
+            row = bestMove.first;
+            col = bestMove.second;
+            cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. ai move: " << row << " " << col << endl;
+        }
+        else {
+            cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. Enter row and column (e.g., 8 8): " << endl;
+            cin >> row >> col;
+            bestMove.first = row;
+            bestMove.second = col;
+        }
+
+        if (board->PlacePiece(row, col, currentPlayer)) {
+            GameResult result = board->IsGameOver(row, col);
+            ai.Update(bestMove);
+            /*cout << "ai updated" << endl;*/
+            if (result != NOT_OVER) {
+                board->PrintBoard();
+                if (result == BLACK_WIN) {
+                    cout << "Black wins!" << endl;
+                }
+                else if (result == WHITE_WIN) {
+                    cout << "White wins!" << endl;
+                }
+                else {
+                    cout << "It's a draw!" << endl;
+                }
+                gameOver = true;
+            }
+            else {
+                board->SwitchPlayer();
+            }
+        }
+        else {
+            cout << "Invalid move. Try again." << endl;
+        }
+    }
 }

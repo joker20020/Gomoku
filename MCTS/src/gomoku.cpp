@@ -164,3 +164,57 @@ vector<pair<int, int>> GomokuBoard::GenerateLegalMoves(const GomokuBoard& board,
     }
     return moves;
 }
+
+
+RlGomokuBoard::RlGomokuBoard():GomokuBoard() {
+}
+
+// Âä×Ó
+bool RlGomokuBoard::PlacePiece(int row, int col, Color color) {
+    if (GomokuBoard::PlacePiece(row, col, color))
+    {
+        lastMoves.push_back({ {row, col}, color });
+        if (lastMoves.size() > LAST_NUM)
+        {
+            lastMoves.erase(lastMoves.begin());
+        }
+        return true;
+    }
+    return false;
+}
+
+torch::Tensor RlGomokuBoard::DumpBoard() {
+    torch::Tensor dumpBoard = torch::zeros({ LAST_NUM * 2, BOARD_SIZE, BOARD_SIZE});
+    torch::Tensor currentBoard = torch::zeros({2, BOARD_SIZE, BOARD_SIZE});
+    pair<pair<int, int>, Color> move;
+    for (size_t row = 0; row < BOARD_SIZE; row++) {
+        for (size_t col = 0; col < BOARD_SIZE; col++)
+        {
+            if (board[row][col] == BLACK)
+            {
+                currentBoard[0][row][col] = 1;
+            }
+            else if(board[row][col] == WHITE)
+            {
+                currentBoard[1][row][col] = 1;
+            }
+        }
+    }
+    vector<pair<pair<int, int>, Color>>::reverse_iterator iter = lastMoves.rbegin();
+    for (; iter != lastMoves.rend(); iter++)
+    {
+        move = *iter;
+        dumpBoard = torch::cat({ 
+            dumpBoard.index({Slice(-(LAST_NUM - 1) * 2,None)}),
+            currentBoard
+            });
+        if (move.second == BLACK)
+        {
+            currentBoard[0][move.first.first][move.first.second] = 0;
+        }
+        else if (move.second == WHITE) {
+            currentBoard[1][move.first.first][move.first.second] = 0;
+        }
+    }
+    return dumpBoard;
+}

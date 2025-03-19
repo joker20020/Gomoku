@@ -1,5 +1,12 @@
 #include "mcts.h"
 
+MCTSNode::MCTSNode() {
+    this->visitCount.store(0);
+    this->totalScore.store(0);
+    this->virtualLoss.store(0);
+    this->lastMove = pair<int, int>{ -1,-1 };
+}
+
 MCTSNode::MCTSNode(const GomokuBoard& board, Color currentPlayer, MCTSNode* parent){
     this->board = board;
     this->currentPlayer = currentPlayer;
@@ -34,7 +41,7 @@ double MCTSNode::UCB1(double explorationWeight) const{
 
 // 选择最佳子节点
 MCTSNode* MCTSNode::SelectBestChild() {
-    lock_guard<mutex> lock(mtx);
+    lock_guard<recursive_mutex> lock(mtx);
     MCTSNode* bestChild = *max_element(children.begin(), children.end(), [](MCTSNode* a, MCTSNode* b) {
         return a->UCB1() < b->UCB1();
     });
@@ -44,12 +51,21 @@ MCTSNode* MCTSNode::SelectBestChild() {
 
 // 扩展子节点
 void MCTSNode::Expand() {
-    lock_guard<mutex> lock(mtx);
-    if (!IsLeaf()) return;
+    lock_guard<recursive_mutex> lock(mtx);
+    if (!IsLeaf()) {
+        MCTSNode *node = this->SelectBestChild();
+        while (!node->IsLeaf())
+        {
+            node = node->SelectBestChild();
+        }
+        node->Expand();
+        return;
+    }
     vector<pair<int, int>> moves = GenerateLegalMoves(board, currentPlayer);
     for (const auto& move : moves) {
         GomokuBoard newBoard = board;
         newBoard.PlacePiece(move.first, move.second, currentPlayer);
+        newBoard.SwitchPlayer();
         MCTSNode* child = new MCTSNode(newBoard, (currentPlayer == WHITE) ? BLACK : WHITE, this);
         child->lastMove = move; // 记录移动
         children.push_back(child);
@@ -111,7 +127,7 @@ pair<int, int> MCTSNode::GetLastMove() const {
     return lastMove;
 }
 
-MCTSAI::MCTSAI(){}
+MCTSAI::MCTSAI() {}
 
 MCTSAI::MCTSAI(const GomokuBoard &board, Color player) {
     root = new MCTSNode(board, player);
@@ -191,9 +207,14 @@ void MCTSAI::AutoUpdate() {
     int bestChildIndex = bestChildIterator - root->children.begin();
 
     root->children.erase(root->children.begin() + bestChildIndex);
-    delete root;
+
+    MCTSNode* temp = this->root;
     root = bestChild;
     root->parent = nullptr;
+    thread* delThread = new thread([temp] {
+        delete temp;
+        });
+    //delete root;
 }
 
 void MCTSAI::Update(pair<int, int> move) {
@@ -209,7 +230,144 @@ void MCTSAI::Update(pair<int, int> move) {
     MCTSNode* bestChild = root->children[i];
 
     root->children.erase(root->children.begin() + i);
-    delete root;
+    
+    MCTSNode* temp = this->root;
     root = bestChild;
     root->parent = nullptr;
+    thread* delThread = new thread([temp] {
+        delete temp;
+        });
+    //delThread->detach();
+    //delete root;
+    
+}
+
+RlMCTSNode::RlMCTSNode() :MCTSNode() {
+}
+
+
+RlMCTSNode::RlMCTSNode(const RlGomokuBoard & board, Color currentPlayer, shared_ptr<MCTSModel> model, double p, RlMCTSNode* parent, double c):MCTSNode(board, currentPlayer, parent) {
+    this->board = board;
+    this->model = model;
+    this->p = p;
+    this->c = c;
+}
+
+RlMCTSNode::~RlMCTSNode() {
+    for (auto child : children) {
+        delete child;
+    }
+}
+
+void RlMCTSNode::Expand() {
+    lock_guard<recursive_mutex> lock(mtx);
+    torch::Tensor evaluateBoard;
+    if (!IsLeaf()) {
+        MCTSNode* node = this->SelectBestChild();
+        while (!node->IsLeaf())
+        {
+            node = node->SelectBestChild();
+        }
+        node->Expand();
+        return;
+    }
+    // 模型评估局面，return (p,v)
+    if (currentPlayer == BLACK) {
+        evaluateBoard = torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard() }).unsqueeze(0);
+    }
+    else if (currentPlayer == WHITE) {
+        evaluateBoard = torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard() }).unsqueeze(0);
+    }
+
+    auto device = model->parameters()[0].device();
+    pair<torch::Tensor, torch::Tensor> nodeEvaluation = model->forward(evaluateBoard.to(device));
+    // 取tensor[0]
+    nodeEvaluation.first = nodeEvaluation.first.squeeze();
+    nodeEvaluation.second = nodeEvaluation.second.squeeze();
+
+    vector<pair<int, int>> moves = GenerateLegalMoves(board, currentPlayer);
+    for (const auto& move : moves) {
+        RlGomokuBoard newBoard = board;
+        newBoard.PlacePiece(move.first, move.second, currentPlayer);
+        newBoard.SwitchPlayer();
+        RlMCTSNode* child = new RlMCTSNode(
+            newBoard, 
+            (currentPlayer == WHITE) ? BLACK : WHITE, model, 
+            nodeEvaluation.first[move.first * BOARD_SIZE + move.second].item<double>(),
+            this);
+        child->lastMove = move; // 记录移动
+        children.push_back(child);
+    }
+    
+    Backpropagate(nodeEvaluation.second.item<double>());
+}
+
+double RlMCTSNode::UCB1(double explorationWeight) const{
+    // U + Q
+    return c.load() * p.load() * sqrt(parent->visitCount.load()) / (1 + visitCount.load()) + (totalScore.load() / visitCount.load()) + virtualLoss.load();
+}
+
+RlMCTSNode* RlMCTSNode::SelectBestChild() {
+    lock_guard<recursive_mutex> lock(mtx);
+    RlMCTSNode* bestChild = *max_element(children.begin(), children.end(), [](MCTSNode* a, MCTSNode* b) {
+        return a->UCB1() < b->UCB1();
+        });
+    bestChild->virtualLoss.store(bestChild->virtualLoss.load() - 1);
+    return bestChild;
+}
+
+RlMCTSAI::RlMCTSAI() {
+}
+
+RlMCTSAI::RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModel> model) {
+    model = model;
+    root = new RlMCTSNode(board, player, model);
+}
+
+RlMCTSAI::~RlMCTSAI() {
+    delete root;
+}
+
+// 运行 MCTS
+void RlMCTSAI::Run(int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        //cout << "Iteration: " << i + 1 << "/"  << iterations << '\r';
+        MCTSNode* node = Select(root);
+        if (!node->IsLeaf()) {
+            node = node->SelectBestChild();
+        }
+        if (node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second) == NOT_OVER && node->IsLeaf()) {
+            node->Expand();
+        }
+    }
+}
+
+pair<int, int> RlMCTSAI::GetBestMove() {
+    RlMCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](MCTSNode* a, MCTSNode* b) {
+        return a->visitCount < b->visitCount;
+        });
+    return bestChild->GetLastMove();
+}
+
+void RlMCTSAI::Update(pair<int, int> move) {
+    size_t i = 0;
+    if (root->children.size() == 0) {
+        Run(1);
+    }
+    for (; i < root->children.size(); ++i) {
+        if (root->children[i]->GetLastMove() == move) {
+            break;
+        }
+    }
+    RlMCTSNode* bestChild = root->children[i];
+
+    root->children.erase(root->children.begin() + i);
+
+    RlMCTSNode* temp = this->root;
+    root = bestChild;
+    root->parent = nullptr;
+    thread* delThread = new thread([temp] {
+        delete temp;
+        });
+
 }

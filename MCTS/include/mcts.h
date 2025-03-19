@@ -9,6 +9,8 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+
+#include "model.h"
 #include "gomoku.h"
 
 using namespace std;
@@ -23,10 +25,11 @@ public:
     vector<MCTSNode*> children; // 子节点
     atomic<int> visitCount; // 访问次数
     atomic<double> totalScore; // 总得分
-    atomic<double> virtualLoss; //虚拟损失
-    mutex mtx;
+    atomic<double> virtualLoss; // 虚拟损失
+    recursive_mutex mtx;
     pair<int, int> lastMove; // 记录最后移动
 
+    MCTSNode();
     MCTSNode(const GomokuBoard& board, Color currentPlayer, MCTSNode* parent = nullptr);
 
     ~MCTSNode();
@@ -38,13 +41,13 @@ public:
     bool IsRoot() const;
 
     // 计算 UCB1 值
-    double UCB1(double explorationWeight = 1.414) const;
+    virtual double UCB1(double explorationWeight = 1.414) const;
 
     // 选择最佳子节点
-    MCTSNode* SelectBestChild();
+    virtual MCTSNode* SelectBestChild();
 
     // 扩展子节点
-    void Expand();
+    virtual void Expand();
 
     // 随机模拟游戏
     double Simulate();
@@ -64,7 +67,7 @@ public:
     // 打印节点对应棋盘
     void Print();
 
-private:
+protected:
     // 生成合法移动
     vector<pair<int, int >> GenerateLegalMoves(const GomokuBoard& board, Color player);
     
@@ -82,39 +85,57 @@ public:
 
     ~MCTSAI();
     // 运行 MCTS
-    void Run(int iterations);
+    virtual void Run(int iterations);
     void ParallelRun(int iterations, int threadNum = 10);
 
 
     // 选择最佳移动
-    pair<int, int> GetBestMove();
+    virtual pair<int, int> GetBestMove();
 
     // 自动更新节点
-    void AutoUpdate();
+    virtual void AutoUpdate();
 
     // 手动更新节点
-    void Update(pair<int, int> move);
-
-private:
+    virtual void Update(pair<int, int> move);
 
     // 选择节点
     MCTSNode* Select(MCTSNode* node);
 
 };
 
-// 主函数
-// int main() {
-//     srand(time(nullptr));
+class RlMCTSNode :public MCTSNode {
+protected:
+    RlGomokuBoard board;
+    shared_ptr<MCTSModel> model;
+    atomic<double> p;
+    atomic<double> c;
+    
+public:
+    vector<RlMCTSNode*> children; // 子节点
 
-//     GomokuBoard board;
-//     board.InitializeBoard();
+    RlMCTSNode();
+    RlMCTSNode(const RlGomokuBoard& board, Color currentPlayer, shared_ptr<MCTSModel> model, double p = 0.0, RlMCTSNode* parent = nullptr, double c = 3);
+    ~RlMCTSNode();
 
-//     MCTSAI ai(board, RED);
-//     ai.Run(1000); // 运行 1000 次模拟
+    // 扩展子节点
+    void Expand() override;
+    double UCB1(double explorationWeight = 1.414) const override;
+    RlMCTSNode* SelectBestChild() override;
+    
+};
 
-//     auto bestMove = ai.GetBestMove();
-//     cout << "最佳移动: (" << bestMove.first.first << ", " << bestMove.first.second << ") -> ("
-//          << bestMove.second.first << ", " << bestMove.second.second << ")" << endl;
+class RlMCTSAI :public MCTSAI{
 
-//     return 0;
-// }
+public:
+    RlMCTSNode* root;
+    shared_ptr<MCTSModel> model;
+
+    RlMCTSAI();
+    RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModel> model);
+    ~RlMCTSAI();
+    // 运行 MCTS
+    void Run(int iterations) override;
+    pair<int, int> GetBestMove() override;
+    void Update(pair<int, int> move) override;
+    
+};
