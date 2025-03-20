@@ -5,7 +5,7 @@
 #include "mcts.h"
 #include "game.h"
 
-
+using namespace torch::indexing;
 class GomokuDataset : public torch::data::Dataset<GomokuDataset, torch::data::Example<torch::Tensor, pair<torch::Tensor, torch::Tensor>>> {
 public:
 	torch::Tensor board;
@@ -27,7 +27,7 @@ public:
 	int batchSize;
 	double lr;
 
-	Trainer(shared_ptr<MCTSModel> model, int selfPlayTimes = 1000, int epoch = 10, int batchSize = 64, double lr = 0.01);
+	Trainer(shared_ptr<MCTSModel> model, int selfPlayTimes = 10000, int epoch = 10, int batchSize = 64, double lr = 0.01);
 
     void Train();
 };

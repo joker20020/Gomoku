@@ -17,6 +17,7 @@ int main() {
     //GomokuBoard board = GomokuBoard();
     /*RlGomokuBoard board = RlGomokuBoard();*/
     shared_ptr<MCTSModel> model = make_shared<MCTSModel>();
+    // model->load();
     model->to(device);
     Trainer trainer = Trainer(model);
     trainer.Train();

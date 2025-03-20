@@ -1,14 +1,23 @@
 ﻿# CMakeList.txt: MCTS 的 CMake 项目，在此处包括源代码并定义
 # 项目特定的逻辑。
 #
-set(CMAKE_PREFIX_PATH "D:/Libtorch/libtorch/share/cmake/Torch")
+
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+  MESSAGE(STATUS "On Linux Platform")
+  set(CMAKE_PREFIX_PATH "/home/jdy/Software/Libtorch/libtorch/share/cmake/Torch")
+  include_directories("/home/jdy/Software/Libtorch/libtorch/include")
+  include_directories("/home/jdy/Software/Libtorch/libtorch/include/torch/csrc/api/include")
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  MESSAGE(STATUS "On Windows Platform")
+  set(CMAKE_PREFIX_PATH "D:/Libtorch/libtorch/share/cmake/Torch")
+  include_directories("D:/Libtorch/libtorch/include")
+  include_directories("D:/Libtorch/libtorch/include/torch/csrc/api/include")
+endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 find_package(Torch REQUIRED)
 
 # 将源代码添加到此项目的可执行文件。
 include_directories("include")
-include_directories("D:/Libtorch/libtorch/include")
-include_directories("D:/Libtorch/libtorch/include/torch/csrc/api/include")
 set(SOURCES
 	src/main.cpp
 	src/game.cpp

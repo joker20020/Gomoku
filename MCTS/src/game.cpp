@@ -179,7 +179,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
     size_t turn = 0;
     
     boardTensor = torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0);
-    cout << boardTensor << endl;
+    
     history.push_back(board->GetCurrentPlayer());
 
     pair<int, int> bestMove;
@@ -189,7 +189,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         currentPlayer = board->GetCurrentPlayer();
 
         time(&startTime);
-        ai->ParallelRun(10);
+        ai->ParallelRun(1600);
         time(&endTime);
         cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
         bestMove = ai->GetBestMove();
