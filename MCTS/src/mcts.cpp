@@ -97,7 +97,7 @@ double MCTSNode::Simulate() {
 
 // 回溯更新节点
 void MCTSNode::Backpropagate(double score) {
-    visitCount++;
+    visitCount.fetch_add(1);
     totalScore.store(totalScore + score);
     virtualLoss.store(virtualLoss + 1);
     if (!IsRoot()) parent->Backpropagate(-score);
@@ -310,6 +310,7 @@ void RlMCTSNode::Expand() {
 
 double RlMCTSNode::UCB1(double explorationWeight) const{
     // U + Q
+    if(visitCount.load() == 0) return c.load() * p.load() * sqrt(parent->visitCount.load()) / (1 + visitCount.load()) + virtualLoss.load();
     return c.load() * p.load() * sqrt(parent->visitCount.load()) / (1 + visitCount.load()) + (totalScore.load() / visitCount.load()) + virtualLoss.load();
 }
 
@@ -343,10 +344,8 @@ void RlMCTSAI::Run(int iterations) {
     for (int i = 0; i < iterations; ++i) {
         //cout << "Iteration: " << i + 1 << "/"  << iterations << '\r';
         MCTSNode* node = Select(root);
-        if (!node->IsLeaf()) {
-            node = node->SelectBestChild();
-        }
-        if (node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second) == NOT_OVER && node->IsLeaf()) {
+        
+        if (node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second) == NOT_OVER) {
             node->Expand();
         }
     }
