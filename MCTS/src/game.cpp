@@ -2,17 +2,18 @@
 
 ChessGame::ChessGame() {
     this->currentPlayer = BLACK;
+    this->ai = new MCTSAI();
 }
 
 ChessGame::ChessGame(GomokuBoard* board, Color aiColor) {
     this->currentPlayer = BLACK;
-    this->ai = *(new MCTSAI(*board, aiColor));
-    this->aiColor = ai.root->currentPlayer;
+    this->ai = new MCTSAI(*board, aiColor);
+    this->aiColor = ai->root->currentPlayer;
     this->board = board;
 }
 
 ChessGame::~ChessGame(){
-    delete &ai;
+    delete ai;
 }
 
 void ChessGame::Start() {
@@ -26,10 +27,10 @@ void ChessGame::Start() {
         
         if (currentPlayer == aiColor) {
             time(&startTime);
-            ai.ParallelRun(2000);
+            ai->ParallelRun(2000);
             time(&endTime);
             cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
-            bestMove = ai.GetBestMove();
+            bestMove = ai->GetBestMove();
             row = bestMove.first;
             col = bestMove.second;
             cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. ai move: " << row << " " << col << endl;
@@ -43,7 +44,7 @@ void ChessGame::Start() {
 
         if (board->PlacePiece(row, col, currentPlayer)) {
             GameResult result = board->IsGameOver(row, col);
-            ai.Update(bestMove);
+            ai->Update(bestMove);
             /*cout << "ai updated" << endl;*/
             if (result != NOT_OVER) {
                 board->PrintBoard();
@@ -100,15 +101,19 @@ vector<pair<int, int>> ChessGame::ParseInput(const string& input) {
     return positions;
 }
 
-RlChessGame::RlChessGame(RlGomokuBoard* board, Color aiColor, shared_ptr<MCTSModel> model) {
+RlChessGame::RlChessGame() {
     this->currentPlayer = BLACK;
-    this->ai = *(new RlMCTSAI(*board, aiColor, model));
-    this->aiColor = ai.root->currentPlayer;
+}
+
+RlChessGame::RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModel> model) {
+    this->currentPlayer = BLACK;
+    this->ai = make_shared<RlMCTSAI>(*board, aiColor, model);
+    this->aiColor = ai->root->currentPlayer;
     this->board = board;
 }
 
 RlChessGame::~RlChessGame() {
-    delete& ai;
+    
 }
 
 void RlChessGame::Start() {
@@ -122,10 +127,10 @@ void RlChessGame::Start() {
 
         if (currentPlayer == aiColor) {
             time(&startTime);
-            ai.ParallelRun(1000);
+            ai->ParallelRun(1000);
             time(&endTime);
             cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
-            bestMove = ai.GetBestMove();
+            bestMove = ai->GetBestMove();
             row = bestMove.first;
             col = bestMove.second;
             cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. ai move: " << row << " " << col << endl;
@@ -139,7 +144,7 @@ void RlChessGame::Start() {
 
         if (board->PlacePiece(row, col, currentPlayer)) {
             GameResult result = board->IsGameOver(row, col);
-            ai.Update(bestMove);
+            ai->Update(bestMove);
             /*cout << "ai updated" << endl;*/
             if (result != NOT_OVER) {
                 board->PrintBoard();
@@ -162,4 +167,112 @@ void RlChessGame::Start() {
             cout << "Invalid move. Try again." << endl;
         }
     }
+}
+
+pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart() {
+    time_t startTime, endTime;
+    int row, col;
+    bool gameOver = false;
+    vector<Color> history = {};
+    torch::Tensor boardTensor, pTensor, vTensor, pTemp;
+    GameResult result;
+    size_t turn = 0;
+    
+    boardTensor = torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0);
+    cout << boardTensor << endl;
+    history.push_back(board->GetCurrentPlayer());
+
+    pair<int, int> bestMove;
+
+    while (!gameOver) {
+        board->PrintBoard();
+        currentPlayer = board->GetCurrentPlayer();
+
+        time(&startTime);
+        ai->ParallelRun(10);
+        time(&endTime);
+        cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
+        bestMove = ai->GetBestMove();
+        row = bestMove.first;
+        col = bestMove.second;
+        cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. ai move: " << row << " " << col << endl;
+
+
+        if (board->PlacePiece(row, col, currentPlayer)) {
+            
+            pTemp = torch::zeros({1, BOARD_SIZE, BOARD_SIZE});
+            for (auto child : ai->root->children){
+                pTemp[0][child->lastMove.first][child->lastMove.second] = (child->totalScore.load() / ai->root->totalScore.load());
+            }
+            if (pTensor.size(0) == 0)
+            {
+                pTensor = pTemp.clone();
+            }
+            else {
+                pTensor = torch::cat({ pTensor, pTemp });
+            }
+            
+
+            result = board->IsGameOver(row, col);
+            ai->Update(bestMove);
+            /*cout << "ai updated" << endl;*/
+            if (result != NOT_OVER) {
+                board->PrintBoard();
+                if (result == BLACK_WIN) {
+                    cout << "Black wins!" << endl;
+                }
+                else if (result == WHITE_WIN) {
+                    cout << "White wins!" << endl;
+                }
+                else {
+                    cout << "It's a draw!" << endl;
+                }
+                gameOver = true;
+            }
+            else {
+                board->SwitchPlayer();
+                history.push_back(currentPlayer);
+                if (currentPlayer == BLACK) {
+                    boardTensor = torch::cat({ boardTensor, torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0) });
+                }
+                else if (currentPlayer == WHITE) {
+                    boardTensor = torch::cat({ boardTensor, torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0) });
+                }
+                
+            }
+        }
+        else {
+            cout << "Invalid move. Try again." << endl;
+        }
+    }
+    // 计算价值
+    vTensor = torch::zeros({ boardTensor.size(0), 1 });
+    if (result != DRAW) {
+        for (size_t i = 0; i < history.size(); i++)
+        {
+            if (result == BLACK_WIN)
+            {
+                if (history[i] == BLACK)
+                {
+                    vTensor[i][0] = -1;
+                }
+                else {
+                    vTensor[i][0] = 1;
+                }
+            }
+            else if (result == WHITE_WIN)
+            {
+                if (history[i] == BLACK)
+                {
+                    vTensor[i][0] = 1;
+                }
+                else {
+                    vTensor[i][0] = -1;
+                }
+            }
+
+        }
+    }
+
+    return make_pair(boardTensor, make_pair(pTensor.flatten(1), vTensor));
 }

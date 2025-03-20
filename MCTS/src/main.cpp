@@ -4,7 +4,7 @@
 #include "mcts.h"
 #include "game.h"
 #include "model.h"
-
+#include "train.h"
 #include "gomoku.h"
 
 
@@ -15,12 +15,14 @@ int main() {
     else device = torch::kCPU;
 
     //GomokuBoard board = GomokuBoard();
-    RlGomokuBoard board = RlGomokuBoard();
+    /*RlGomokuBoard board = RlGomokuBoard();*/
     shared_ptr<MCTSModel> model = make_shared<MCTSModel>();
     model->to(device);
-    RlChessGame game = RlChessGame(&board, BLACK, model);
+    Trainer trainer = Trainer(model);
+    trainer.Train();
+    /*RlChessGame game = RlChessGame(&board, BLACK, model);
     
-    game.Start();
+    game.Start();*/
 
     //cout << board.DumpBoard();
 

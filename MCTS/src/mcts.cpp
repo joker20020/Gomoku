@@ -1,10 +1,13 @@
 #include "mcts.h"
 
 MCTSNode::MCTSNode() {
+    this->currentPlayer = BLACK;
+    this->parent = nullptr;
     this->visitCount.store(0);
     this->totalScore.store(0);
     this->virtualLoss.store(0);
     this->lastMove = pair<int, int>{ -1,-1 };
+    this->children = {};
 }
 
 MCTSNode::MCTSNode(const GomokuBoard& board, Color currentPlayer, MCTSNode* parent){
@@ -127,7 +130,9 @@ pair<int, int> MCTSNode::GetLastMove() const {
     return lastMove;
 }
 
-MCTSAI::MCTSAI() {}
+MCTSAI::MCTSAI() {
+    root = new MCTSNode();
+}
 
 MCTSAI::MCTSAI(const GomokuBoard &board, Color player) {
     root = new MCTSNode(board, player);
@@ -271,7 +276,7 @@ void RlMCTSNode::Expand() {
         node->Expand();
         return;
     }
-    // 模型评估局面，return (p,v)
+    // 模型评估局面，input[color, n, n-1, ... ,n-7] return (p,v)
     if (currentPlayer == BLACK) {
         evaluateBoard = torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard() }).unsqueeze(0);
     }
@@ -282,7 +287,7 @@ void RlMCTSNode::Expand() {
     auto device = model->parameters()[0].device();
     pair<torch::Tensor, torch::Tensor> nodeEvaluation = model->forward(evaluateBoard.to(device));
     // 取tensor[0]
-    nodeEvaluation.first = nodeEvaluation.first.squeeze();
+    nodeEvaluation.first = model->softMax(nodeEvaluation.first).squeeze();
     nodeEvaluation.second = nodeEvaluation.second.squeeze();
 
     vector<pair<int, int>> moves = GenerateLegalMoves(board, currentPlayer);
@@ -292,7 +297,8 @@ void RlMCTSNode::Expand() {
         newBoard.SwitchPlayer();
         RlMCTSNode* child = new RlMCTSNode(
             newBoard, 
-            (currentPlayer == WHITE) ? BLACK : WHITE, model, 
+            (currentPlayer == WHITE) ? BLACK : WHITE, 
+            model, 
             nodeEvaluation.first[move.first * BOARD_SIZE + move.second].item<double>(),
             this);
         child->lastMove = move; // 记录移动
@@ -314,6 +320,10 @@ RlMCTSNode* RlMCTSNode::SelectBestChild() {
         });
     bestChild->virtualLoss.store(bestChild->virtualLoss.load() - 1);
     return bestChild;
+}
+
+bool RlMCTSNode::IsLeaf() const {
+    return children.empty();
 }
 
 RlMCTSAI::RlMCTSAI() {

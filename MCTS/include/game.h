@@ -11,7 +11,7 @@ class ChessGame {
         
     public:
         GomokuBoard *board;
-        MCTSAI ai;
+        MCTSAI* ai;
         ChessGame();
         ChessGame(GomokuBoard *board, Color aiColor);
         ~ChessGame();
@@ -29,12 +29,14 @@ private:
     Color aiColor;
 
 public:
-    RlGomokuBoard* board;
-    RlMCTSAI ai;
-    RlChessGame(RlGomokuBoard* board, Color aiColor, shared_ptr<MCTSModel> model);
+    shared_ptr<RlGomokuBoard> board;
+    shared_ptr<RlMCTSAI> ai;
+    RlChessGame();
+    RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModel> model);
     ~RlChessGame();
 
     void Start() override;
+    pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> TrainStart();
 
 private:
     

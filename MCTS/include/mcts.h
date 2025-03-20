@@ -35,10 +35,10 @@ public:
     ~MCTSNode();
 
     // 判断是否为叶子节点
-    bool IsLeaf() const;
+    virtual bool IsLeaf() const;
 
     // 判断是否为根节点
-    bool IsRoot() const;
+    virtual bool IsRoot() const;
 
     // 计算 UCB1 值
     virtual double UCB1(double explorationWeight = 1.414) const;
@@ -50,26 +50,26 @@ public:
     virtual void Expand();
 
     // 随机模拟游戏
-    double Simulate();
+    virtual double Simulate();
 
     // 回溯更新节点
-    void Backpropagate(double score);
+    virtual void Backpropagate(double score);
 
     // 获取最后移动
-    pair<int, int> GetLastMove() const;
+    virtual pair<int, int> GetLastMove() const;
 
     // 判断游戏是否结束
-    GameResult IsGameOver(const GomokuBoard& board, int row, int col);
+    virtual GameResult IsGameOver(const GomokuBoard& board, int row, int col);
 
     // 评估棋盘状态
-    double EvaluateBoard(GameResult result, Color player);
+    virtual double EvaluateBoard(GameResult result, Color player);
 
     // 打印节点对应棋盘
-    void Print();
+    virtual void Print();
 
 protected:
     // 生成合法移动
-    vector<pair<int, int >> GenerateLegalMoves(const GomokuBoard& board, Color player);
+    virtual vector<pair<int, int >> GenerateLegalMoves(const GomokuBoard& board, Color player);
     
 };
 
@@ -79,9 +79,9 @@ public:
     MCTSNode* root;
 
     MCTSAI();
-    MCTSAI(const GomokuBoard &board, Color player);
-   /* MCTSAI(const MCTSAI& other);
-    MCTSAI& operator=(const MCTSAI& other);*/
+    MCTSAI(const GomokuBoard& board, Color player);
+    /* MCTSAI(const MCTSAI& other);
+     MCTSAI& operator=(const MCTSAI& other);*/
 
     ~MCTSAI();
     // 运行 MCTS
@@ -121,6 +121,7 @@ public:
     void Expand() override;
     double UCB1(double explorationWeight = 1.414) const override;
     RlMCTSNode* SelectBestChild() override;
+    bool IsLeaf() const override;
     
 };
 

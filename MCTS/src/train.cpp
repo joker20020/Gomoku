@@ -1,1 +1,88 @@
 #include "train.h"
+
+GomokuDataset::GomokuDataset(torch::Tensor board, torch::Tensor p, torch::Tensor v) {
+	this->board = board;;
+    this->p = p;
+    this->v = v;
+}
+
+torch::data::Example<torch::Tensor, pair<torch::Tensor, torch::Tensor>> GomokuDataset::get(size_t index) {
+    return {board[index], {p[index], v[index]}};
+}
+
+torch::optional<size_t> GomokuDataset::size() const {
+    return board.size(0);
+}
+
+
+Trainer::Trainer(shared_ptr<MCTSModel> model, int selfPlayTimes, int epoch, int batchSize, double lr) {
+    this->model = model;
+    this->epoch = epoch;
+    this->batchSize = batchSize;
+    this->lr = lr;
+    this->selfPlayTimes = selfPlayTimes;
+}
+
+void Trainer::Train() {
+    int memorySize = 10;
+    int dataSize = 20;
+    torch::Tensor boardTenors, pTensors, vTensors;
+    boardTenors = torch::tensor({});
+    pTensors = torch::tensor({});
+    vTensors = torch::tensor({});
+
+    for (size_t i = 0; i < selfPlayTimes; i++)
+    {
+        while (boardTenors.size(0) < dataSize)
+        {
+            shared_ptr<RlGomokuBoard> board = make_shared<RlGomokuBoard>();
+            shared_ptr<RlChessGame> game = make_shared<RlChessGame>(board, BLACK, model);
+            pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> trainResult = game->TrainStart();
+            boardTenors = torch::cat({ boardTenors, trainResult.first}, 0);
+            pTensors = torch::cat({pTensors, trainResult.second.first}, 0);
+            vTensors = torch::cat({vTensors, trainResult.second.second}, 0);
+        }
+
+        // ÑµÁ·Ñ­»·
+        GomokuDataset dataset = GomokuDataset(boardTenors, pTensors, vTensors);
+        auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(std::move(dataset), batchSize);
+        torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions({lr}).weight_decay(1e-4));
+        auto device = model->parameters()[0].device();
+        
+        for (size_t j = 1; j <= epoch; ++j) {
+            
+            // Iterate the data loader to yield batches from the dataset.
+            for (auto& batch : *data_loader) {
+                // Reset gradients.
+                optimizer.zero_grad();
+                torch::Tensor datas = torch::tensor({});
+                pair<torch::Tensor, torch::Tensor> targets = { torch::tensor({}),  torch::tensor({}) };
+                for (auto& data : batch) {
+                    datas = torch::cat({datas, data.data.unsqueeze(0)}, 0);
+                    targets.first = torch::cat({targets.first, data.target.first.unsqueeze(0) }, 0);
+                    targets.second = torch::cat({targets.second, data.target.second.unsqueeze(0) }, 0);
+                }
+                // Execute the model on the input data.
+                cout << datas << endl;
+                pair<torch::Tensor, torch::Tensor> prediction = model->forward(datas.to(device));
+                // Compute a loss value to judge the prediction of our model.
+                torch::Tensor creLoss = torch::nn::functional::cross_entropy(prediction.first, targets.first.to(device));
+                torch::Tensor mseLoss = torch::nn::functional::mse_loss(prediction.second, targets.second.to(device));
+                torch::Tensor totalLoss = creLoss + mseLoss;
+                // Compute gradients of the loss w.r.t. the parameters of our model.
+                totalLoss.backward();
+                // Update the parameters based on the calculated gradients.
+                optimizer.step();
+                // Output the loss and checkpoint every 100 batches.
+                if (++i % 10 == 0) {
+                    std::cout << "Epoch: " << epoch << " | Batch: " << i
+                        << " | Loss: " << totalLoss.item<float>() << std::endl;
+                    // Serialize your model periodically as a checkpoint.
+                    torch::save(model, "net.pt");
+                }
+            }
+        }
+
+    }
+
+}
