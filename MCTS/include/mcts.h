@@ -106,7 +106,7 @@ public:
 class RlMCTSNode :public MCTSNode {
 protected:
     RlGomokuBoard board;
-    shared_ptr<MCTSModel> model;
+    shared_ptr<MCTSModelPool> modelPool;
     atomic<double> p;
     atomic<double> c;
     
@@ -114,7 +114,7 @@ public:
     vector<RlMCTSNode*> children; // 子节点
 
     RlMCTSNode();
-    RlMCTSNode(const RlGomokuBoard& board, Color currentPlayer, shared_ptr<MCTSModel> model, double p = 0.0, RlMCTSNode* parent = nullptr, double c = 3);
+    RlMCTSNode(const RlGomokuBoard& board, Color currentPlayer, shared_ptr<MCTSModelPool> modelPool, double p = 0.0, RlMCTSNode* parent = nullptr, double c = 3);
     ~RlMCTSNode();
 
     // 扩展子节点
@@ -129,10 +129,10 @@ class RlMCTSAI :public MCTSAI{
 
 public:
     RlMCTSNode* root;
-    shared_ptr<MCTSModel> model;
+    shared_ptr<MCTSModelPool> model;
 
     RlMCTSAI();
-    RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModel> model);
+    RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModelPool> modelPool);
     ~RlMCTSAI();
     // 运行 MCTS
     void Run(int iterations) override;

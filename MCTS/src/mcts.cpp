@@ -251,9 +251,9 @@ RlMCTSNode::RlMCTSNode() :MCTSNode() {
 }
 
 
-RlMCTSNode::RlMCTSNode(const RlGomokuBoard & board, Color currentPlayer, shared_ptr<MCTSModel> model, double p, RlMCTSNode* parent, double c):MCTSNode(board, currentPlayer, parent) {
+RlMCTSNode::RlMCTSNode(const RlGomokuBoard & board, Color currentPlayer, shared_ptr<MCTSModelPool> modelPool, double p, RlMCTSNode* parent, double c):MCTSNode(board, currentPlayer, parent) {
     this->board = board;
-    this->model = model;
+    this->modelPool = modelPool;
     this->p = p;
     this->c = c;
 }
@@ -281,18 +281,21 @@ void RlMCTSNode::Expand() {
         evaluateBoard = torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard() }).unsqueeze(0);
     }
     else if (currentPlayer == WHITE) {
-        evaluateBoard = torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard() }).unsqueeze(0);
+        evaluateBoard = torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board.DumpBoard(true) }).unsqueeze(0);
     }
-
+    auto modelPair = modelPool->GetModel();
+    auto modelIndex = modelPair.first;
+    auto model = modelPair.second;
     auto device = model->parameters()[0].device();
     // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     pair<torch::Tensor, torch::Tensor> nodeEvaluation = model->forward(evaluateBoard.to(device));
+    modelPool->ReleaseModel(modelIndex);
     // std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     // // 计算日期差
     // std::chrono::duration<double> diff = end - start;
     // // 输出日期差
     // std::cout << "one forward is: " << diff.count() << " seconds" << std::endl;
-    cout << evaluateBoard.sizes() << endl;
+    // cout << evaluateBoard.sizes() << endl;
     
     // 取tensor[0]
     nodeEvaluation.first = model->softMax(nodeEvaluation.first).squeeze();
@@ -306,7 +309,7 @@ void RlMCTSNode::Expand() {
         RlMCTSNode* child = new RlMCTSNode(
             newBoard, 
             (currentPlayer == WHITE) ? BLACK : WHITE, 
-            model, 
+            modelPool, 
             nodeEvaluation.first[move.first * BOARD_SIZE + move.second].item<double>(),
             this);
         child->lastMove = move; // 记录移动
@@ -338,8 +341,8 @@ bool RlMCTSNode::IsLeaf() const {
 RlMCTSAI::RlMCTSAI() {
 }
 
-RlMCTSAI::RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModel> model) {
-    model = model;
+RlMCTSAI::RlMCTSAI(const RlGomokuBoard& board, Color player, shared_ptr<MCTSModelPool> modelPool) {
+    model = modelPool;
     root = new RlMCTSNode(board, player, model);
 }
 
@@ -367,8 +370,8 @@ void RlMCTSAI::Run(int iterations) {
 }
 
 pair<int, int> RlMCTSAI::GetBestMove() {
-    RlMCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](MCTSNode* a, MCTSNode* b) {
-        return a->visitCount < b->visitCount;
+    RlMCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](RlMCTSNode* a, RlMCTSNode* b) {
+        return a->visitCount.load() < b->visitCount.load();
         });
     return bestChild->GetLastMove();
 }

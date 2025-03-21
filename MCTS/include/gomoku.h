@@ -63,5 +63,5 @@ private:
 public:
     RlGomokuBoard();
     bool PlacePiece(int row, int col, Color color) override;  // ����
-    torch::Tensor DumpBoard();
+    torch::Tensor DumpBoard(bool swap = false);
 };

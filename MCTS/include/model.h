@@ -31,3 +31,26 @@ public:
 
 	mutex mtx;
 };
+
+enum ModelStatus {
+	MODEL_FREE,
+	MODEL_BUSY
+};
+
+class MCTSModelPool {
+public:
+	MCTSModelPool(int modelNum = 1, int resNum = 19, int pNum = 2, int vNum = 3);
+	~MCTSModelPool();
+
+    vector<shared_ptr<MCTSModel>> models;
+	vector<ModelStatus> modelStatus;
+	mutex mtx;
+	
+
+	pair<int, shared_ptr<MCTSModel>> GetModel(int modelIndex = -1);
+
+	void to(torch::Device device);
+	void Load(string path);
+	void Sync(int modelIndex);
+	void ReleaseModel(int modelIndex);
+};

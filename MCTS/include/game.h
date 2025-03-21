@@ -32,7 +32,7 @@ public:
     shared_ptr<RlGomokuBoard> board;
     shared_ptr<RlMCTSAI> ai;
     RlChessGame();
-    RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModel> model);
+    RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModelPool> modelPool);
     ~RlChessGame();
 
     void Start() override;

@@ -18,13 +18,18 @@ int main(int argc, char *argv[]) {
 
     //GomokuBoard board = GomokuBoard();
     /*RlGomokuBoard board = RlGomokuBoard();*/
-    shared_ptr<MCTSModel> model = make_shared<MCTSModel>();
+    /*shared_ptr<MCTSModel> model1 = make_shared<MCTSModel>();
+    shared_ptr<MCTSModel> model2 = make_shared<MCTSModel>();*/
+
+    auto pool = make_shared<MCTSModelPool>(2);
+    pool->to(device);
+   
     //load model
     // torch::serialize::InputArchive archive;
     // archive.load_from("net.pt");
     // model->load(archive);
     
-    model->to(device);
+    //model->to(device);
     // torch::Tensor x = torch::ones({1, 17 ,BOARD_SIZE ,BOARD_SIZE});
     // for (size_t i = 0; i < 10; i++)
     // {
@@ -39,7 +44,7 @@ int main(int argc, char *argv[]) {
     // }
     
     
-    Trainer trainer = Trainer(model);
+    Trainer trainer = Trainer(pool);
     trainer.Train();
     /*RlChessGame game = RlChessGame(&board, BLACK, model);
     

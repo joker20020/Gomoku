@@ -105,9 +105,9 @@ RlChessGame::RlChessGame() {
     this->currentPlayer = BLACK;
 }
 
-RlChessGame::RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModel> model) {
+RlChessGame::RlChessGame(shared_ptr<RlGomokuBoard> board, Color aiColor, shared_ptr<MCTSModelPool> modelPool) {
     this->currentPlayer = BLACK;
-    this->ai = make_shared<RlMCTSAI>(*board, aiColor, model);
+    this->ai = make_shared<RlMCTSAI>(*board, aiColor, modelPool);
     this->aiColor = ai->root->currentPlayer;
     this->board = board;
 }
@@ -189,7 +189,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         currentPlayer = board->GetCurrentPlayer();
 
         time(&startTime);
-        ai->ParallelRun(1600, 16);
+        ai->ParallelRun(10, 1);
         time(&endTime);
         cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
         bestMove = ai->GetBestMove();
@@ -236,7 +236,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
                     boardTensor = torch::cat({ boardTensor, torch::cat({ torch::zeros({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0) });
                 }
                 else if (currentPlayer == WHITE) {
-                    boardTensor = torch::cat({ boardTensor, torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard() }).unsqueeze(0) });
+                    boardTensor = torch::cat({ boardTensor, torch::cat({ torch::ones({1, BOARD_SIZE, BOARD_SIZE}),board->DumpBoard(true) }).unsqueeze(0) });
                 }
                 
             }

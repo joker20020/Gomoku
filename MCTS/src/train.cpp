@@ -15,8 +15,8 @@ torch::optional<size_t> GomokuDataset::size() const {
 }
 
 
-Trainer::Trainer(shared_ptr<MCTSModel> model, int selfPlayTimes, int epoch, int batchSize, double lr) {
-    this->model = model;
+Trainer::Trainer(shared_ptr<MCTSModelPool> modelPool, int selfPlayTimes, int epoch, int batchSize, double lr) {
+    this->modelPool = modelPool;
     this->epoch = epoch;
     this->batchSize = batchSize;
     this->lr = lr;
@@ -36,13 +36,14 @@ void Trainer::Train() {
         while (boardTensors.size(0) < dataSize)
         {
             shared_ptr<RlGomokuBoard> board = make_shared<RlGomokuBoard>();
-            shared_ptr<RlChessGame> game = make_shared<RlChessGame>(board, BLACK, model);
+            shared_ptr<RlChessGame> game = make_shared<RlChessGame>(board, BLACK, modelPool);
             pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> trainResult = game->TrainStart();
             boardTensors = torch::cat({ boardTensors, trainResult.first}, 0);
             pTensors = torch::cat({pTensors, trainResult.second.first}, 0);
             vTensors = torch::cat({vTensors, trainResult.second.second}, 0);
+            int64_t originCount = boardTensors.size(0);
             // data augmente
-            for (size_t dataCount = boardTensors.size(0) - memorySize; dataCount < boardTensors.size(0); dataCount++)
+            for (size_t dataCount = originCount - memorySize; dataCount < originCount; dataCount++)
             {
                 // rot 90
                 boardTensors = torch::cat({ boardTensors, torch::rot90(boardTensors[dataCount], 1, {1, 2}).unsqueeze(0)}, 0);
@@ -74,6 +75,9 @@ void Trainer::Train() {
         cout << "Total data size: " << boardTensors.size(0) << '\n';
 
         // ѵ��ѭ��
+        auto modelPair = modelPool->GetModel();
+        auto modelIndex = modelPair.first;
+        auto model = modelPair.second;
         pTensors = pTensors.flatten(1);
         GomokuDataset dataset = GomokuDataset(boardTensors, pTensors, vTensors);
         auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(std::move(dataset), batchSize);
@@ -122,6 +126,9 @@ void Trainer::Train() {
         boardTensors = boardTensors.index({Slice(-memorySize, None)});
         pTensors = pTensors.index({Slice(-memorySize, None)});
         vTensors = vTensors.index({Slice(-memorySize, None)});
+
+        modelPool->ReleaseModel(modelIndex);
+        modelPool->Sync(modelIndex);
     }
 
 }

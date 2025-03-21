@@ -71,3 +71,89 @@ pair<torch::Tensor, torch::Tensor> MCTSModel::forward(torch::Tensor x) {
 	result.second = vHead->forward(feature);
 	return result;
 }
+
+MCTSModelPool::MCTSModelPool(int modelNum, int resNum, int pNum, int vNum) {
+	for (size_t i = 0; i < modelNum; i++)
+	{
+		models.push_back(make_shared<MCTSModel>(resNum, pNum, vNum));
+		modelStatus.push_back(MODEL_FREE);
+	}
+}
+
+MCTSModelPool::~MCTSModelPool() {
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		models[i].reset();
+	}
+}
+
+pair<int, shared_ptr<MCTSModel>> MCTSModelPool::GetModel(int modelIndex) {
+	std::unique_lock<mutex> lock(mtx, std::defer_lock);
+	if (modelIndex != -1) {
+		modelStatus[modelIndex] = MODEL_BUSY;
+		return {modelIndex, models[modelIndex] };
+	}
+	while (true)
+	{
+		lock.lock();
+		for (size_t i = 0; i < modelStatus.size(); i++) {
+			if (modelStatus[i] == MODEL_FREE) {
+				modelStatus[i] = MODEL_BUSY;
+				return { i, models[i] };
+			}
+		}
+		lock.unlock();
+	}
+}
+
+void MCTSModelPool::to(torch::Device device) {
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		models[i]->to(device);
+	}
+}
+
+void MCTSModelPool::Load(string path) {
+	torch::serialize::InputArchive archive;
+	archive.load_from(path);
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		models[i]->load(archive);
+	}
+}
+
+void MCTSModelPool::Sync(int modelIndex) {
+	std::lock_guard<mutex> lock(mtx);
+	torch::save(models[modelIndex], "net.temp");
+	/*cout << models[modelIndex]->parameters()[1] << endl;
+	cout << models[1]->parameters()[1] <<endl;*/
+	Load("net.temp");
+	remove("net.temp");
+	/*cout << models[modelIndex]->parameters()[1] << endl;
+	cout << models[1]->parameters()[1] << endl;*/
+
+	/*auto newParams = models[modelIndex]->named_parameters();
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		auto oldParams = models[i]->named_parameters();
+		for (auto& val : oldParams) {
+			auto name = val.key();
+			auto* t = newParams.find(name);
+			if (t != nullptr) {
+				t->copy_(val.value());
+			}
+			else {
+				t = oldParams.find(name);
+				if (t != nullptr) {
+					t->copy_(val.value());
+				}
+			}
+		}
+	}*/
+
+	
+}
+
+void MCTSModelPool::ReleaseModel(int modelIndex) {
+    modelStatus[modelIndex] = MODEL_FREE;
+}

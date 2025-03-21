@@ -183,20 +183,32 @@ bool RlGomokuBoard::PlacePiece(int row, int col, Color color) {
     return false;
 }
 
-torch::Tensor RlGomokuBoard::DumpBoard() {
+torch::Tensor RlGomokuBoard::DumpBoard(bool swap) {
     torch::Tensor dumpBoard = torch::zeros({ LAST_NUM * 2, BOARD_SIZE, BOARD_SIZE});
     torch::Tensor currentBoard = torch::zeros({2, BOARD_SIZE, BOARD_SIZE});
     pair<pair<int, int>, Color> move;
     for (size_t row = 0; row < BOARD_SIZE; row++) {
         for (size_t col = 0; col < BOARD_SIZE; col++)
         {
-            if (board[row][col] == BLACK)
-            {
-                currentBoard[0][row][col] = 1;
+            if (swap) {
+                if (board[row][col] == BLACK)
+                {
+                    currentBoard[1][row][col] = 1;
+                }
+                else if (board[row][col] == WHITE)
+                {
+                    currentBoard[0][row][col] = 1;
+                }
             }
-            else if(board[row][col] == WHITE)
-            {
-                currentBoard[1][row][col] = 1;
+            else {
+                if (board[row][col] == BLACK)
+                {
+                    currentBoard[0][row][col] = 1;
+                }
+                else if (board[row][col] == WHITE)
+                {
+                    currentBoard[1][row][col] = 1;
+                }
             }
         }
     }
