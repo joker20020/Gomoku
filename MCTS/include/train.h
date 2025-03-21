@@ -27,7 +27,7 @@ public:
 	int batchSize;
 	double lr;
 
-	Trainer(shared_ptr<MCTSModelPool> modelPool, int selfPlayTimes = 10000, int epoch = 10, int batchSize = 64, double lr = 0.01);
+	Trainer(shared_ptr<MCTSModelPool> modelPool, int selfPlayTimes = 10000, int epoch = 25, int batchSize = 64, double lr = 0.01);
 
     void Train();
 };

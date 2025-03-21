@@ -24,8 +24,8 @@ Trainer::Trainer(shared_ptr<MCTSModelPool> modelPool, int selfPlayTimes, int epo
 }
 
 void Trainer::Train() {
-    int memorySize = 10;
-    int dataSize = 20;
+    int memorySize = 1024;
+    int dataSize = 2048;
     torch::Tensor boardTensors, pTensors, vTensors;
     boardTensors = torch::tensor({});
     pTensors = torch::tensor({});
@@ -38,9 +38,18 @@ void Trainer::Train() {
             shared_ptr<RlGomokuBoard> board = make_shared<RlGomokuBoard>();
             shared_ptr<RlChessGame> game = make_shared<RlChessGame>(board, BLACK, modelPool);
             pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> trainResult = game->TrainStart();
+            // cout << boardTensors.sizes() << endl;
+            // cout << trainResult.first.sizes() << endl;
             boardTensors = torch::cat({ boardTensors, trainResult.first}, 0);
+            // cout << "board OK" << endl;
+            // cout << pTensors.sizes() << endl;
+            // cout << trainResult.second.first.sizes() << endl;
             pTensors = torch::cat({pTensors, trainResult.second.first}, 0);
+            // cout << "p OK" << endl;
+            // cout << vTensors.sizes() << endl;
+            // cout << trainResult.second.second.sizes() << endl;
             vTensors = torch::cat({vTensors, trainResult.second.second}, 0);
+            // cout << "v OK" << endl;
             int64_t originCount = boardTensors.size(0);
             // data augmente
             for (size_t dataCount = originCount - memorySize; dataCount < originCount; dataCount++)
@@ -86,7 +95,7 @@ void Trainer::Train() {
         
         for (size_t j = 1; j <= epoch; ++j) {
 
-            cout << "Trainning epoch " << j << '\r';
+            cout << "Trainning epoch " << j << '\n';
             
             // Iterate the data loader to yield batches from the dataset.
             for (auto& batch : *data_loader) {
@@ -110,7 +119,7 @@ void Trainer::Train() {
                 // Update the parameters based on the calculated gradients.
                 optimizer.step();
                 // Output the loss and checkpoint every 100 batches.
-                if (++i % 2 == 0) {
+                if (i % 5 == 0) {
                     std::cout << "Epoch: " << j << " | Self play: " << i
                         << " | Loss: " << totalLoss.item<float>() << std::endl;
                     // Serialize your model periodically as a checkpoint.
@@ -118,13 +127,14 @@ void Trainer::Train() {
                     // modelName << "model/net";
                     // modelName << i;
                     // modelName << ".pt";
+                    // torch::save(model, modelName.str());
                     torch::save(model, "net.pt");
                 }
             }
         }
 
         boardTensors = boardTensors.index({Slice(-memorySize, None)});
-        pTensors = pTensors.index({Slice(-memorySize, None)});
+        pTensors = pTensors.index({Slice(-memorySize, None)}).reshape({boardTensors.size(0), BOARD_SIZE, BOARD_SIZE});
         vTensors = vTensors.index({Slice(-memorySize, None)});
 
         modelPool->ReleaseModel(modelIndex);

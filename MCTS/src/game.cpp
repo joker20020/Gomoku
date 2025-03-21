@@ -170,7 +170,7 @@ void RlChessGame::Start() {
 }
 
 pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart() {
-    time_t startTime, endTime;
+    
     int row, col;
     bool gameOver = false;
     vector<Color> history = {};
@@ -184,15 +184,28 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
 
     pair<int, int> bestMove;
 
+    int round = 0;
+
     while (!gameOver) {
         board->PrintBoard();
         currentPlayer = board->GetCurrentPlayer();
 
-        time(&startTime);
-        ai->ParallelRun(10, 1);
-        time(&endTime);
-        cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
-        bestMove = ai->GetBestMove();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+        ai->ParallelRun(1600, 8);
+        std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+        // 计算日期差
+        std::chrono::duration<double> diff = end - start;
+        // 输出日期差
+        std::cout << "one forward is: " << diff.count() << " seconds" << std::endl;
+        
+        if(round < 5){
+            bestMove = ai->GetBestMove(true);
+            cout << "random" << endl;
+        }
+        else{
+            bestMove = ai->GetBestMove();
+        }
+        round++;
         row = bestMove.first;
         col = bestMove.second;
         cout << (currentPlayer == BLACK ? "Black" : "White") << "'s turn. ai move: " << row << " " << col << endl;

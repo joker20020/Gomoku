@@ -9,6 +9,7 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <random>
 
 #include "model.h"
 #include "gomoku.h"
@@ -90,7 +91,7 @@ public:
 
 
     // 选择最佳移动
-    virtual pair<int, int> GetBestMove();
+    virtual pair<int, int> GetBestMove(bool random = false);
 
     // 自动更新节点
     virtual void AutoUpdate();
@@ -136,7 +137,7 @@ public:
     ~RlMCTSAI();
     // 运行 MCTS
     void Run(int iterations) override;
-    pair<int, int> GetBestMove() override;
+    pair<int, int> GetBestMove(bool random = false) override;
     void Update(pair<int, int> move) override;
     
 };

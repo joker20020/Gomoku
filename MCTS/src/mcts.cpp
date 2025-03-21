@@ -185,7 +185,7 @@ void MCTSAI::ParallelRun(int iterations, int threadNum) {
 }
 
 // 选择最佳移动
-pair<int, int> MCTSAI::GetBestMove() {
+pair<int, int> MCTSAI::GetBestMove(bool random) {
     MCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](MCTSNode* a, MCTSNode* b) {
         return a->visitCount < b->visitCount;
     });
@@ -352,13 +352,20 @@ RlMCTSAI::~RlMCTSAI() {
 
 // 运行 MCTS
 void RlMCTSAI::Run(int iterations) {
+    GameResult result;
     for (int i = 0; i < iterations; ++i) {
         // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         //cout << "Iteration: " << i + 1 << "/"  << iterations << '\r';
         MCTSNode* node = Select(root);
-        
-        if (node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second) == NOT_OVER) {
+        result = node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second);
+        if (result == NOT_OVER) {
             node->Expand();
+        }
+        else if(result == DRAW){
+            node->Backpropagate(0);
+        }
+        else{
+            node->Backpropagate(1);
         }
         // std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         // // 计算日期差
@@ -369,7 +376,24 @@ void RlMCTSAI::Run(int iterations) {
     }
 }
 
-pair<int, int> RlMCTSAI::GetBestMove() {
+pair<int, int> RlMCTSAI::GetBestMove(bool random) {
+    if (random) {
+        std::vector<double> weights = {};
+        for(auto child : root->children){
+            weights.push_back(child->visitCount.load());
+        }
+
+        // 创建随机数生成器
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        // 创建带权重的分布
+        std::discrete_distribution<> dist(weights.begin(), weights.end());
+
+        int random_number = dist(gen);
+        
+        return root->children[random_number]->GetLastMove();
+    }
     RlMCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](RlMCTSNode* a, RlMCTSNode* b) {
         return a->visitCount.load() < b->visitCount.load();
         });

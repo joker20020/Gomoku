@@ -21,7 +21,8 @@ int main(int argc, char *argv[]) {
     /*shared_ptr<MCTSModel> model1 = make_shared<MCTSModel>();
     shared_ptr<MCTSModel> model2 = make_shared<MCTSModel>();*/
 
-    auto pool = make_shared<MCTSModelPool>(2);
+    auto pool = make_shared<MCTSModelPool>(8);
+    pool->Load("net.pt");
     pool->to(device);
    
     //load model
