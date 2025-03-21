@@ -43,7 +43,7 @@ MCTSModel::MCTSModel(int resNum, int pNum, int vNum): net(), pHead(), vHead(), s
 	vHead->push_back(Conv2d(Conv2dOptions(256, 1, 1)));
 	vHead->push_back(BatchNorm2d(1));
 	vHead->push_back(ReLU());
-	for (size_t i = 0; i < pNum; i++)
+	for (size_t i = 0; i < vNum; i++)
 	{
 		vHead->push_back(Conv2d(Conv2dOptions(1, 1, 1)));
 		vHead->push_back(BatchNorm2d(1));
@@ -64,7 +64,7 @@ MCTSModel::MCTSModel(int resNum, int pNum, int vNum): net(), pHead(), vHead(), s
 
 // return (p, v)
 pair<torch::Tensor, torch::Tensor> MCTSModel::forward(torch::Tensor x) {
-	//lock_guard<mutex> lock(mtx);
+	// lock_guard<mutex> lock(mtx);
 	pair<torch::Tensor, torch::Tensor> result;
 	torch::Tensor feature = net->forward(x);
 	result.first = pHead->forward(feature);

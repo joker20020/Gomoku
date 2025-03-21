@@ -189,7 +189,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         currentPlayer = board->GetCurrentPlayer();
 
         time(&startTime);
-        ai->ParallelRun(100);
+        ai->ParallelRun(1600, 16);
         time(&endTime);
         cout << "ai use time: " << (difftime(endTime, startTime)) << "s" << endl;
         bestMove = ai->GetBestMove();
@@ -274,5 +274,5 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         }
     }
 
-    return make_pair(boardTensor, make_pair(pTensor.flatten(1), vTensor));
+    return make_pair(boardTensor, make_pair(pTensor, vTensor));
 }

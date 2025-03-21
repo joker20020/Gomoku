@@ -8,17 +8,37 @@
 #include "gomoku.h"
 
 
-int main() {
+int main(int argc, char *argv[]) {
 
     torch::Device device = torch::Device(torch::kCPU);
     if (torch::cuda::is_available()) device = torch::kCUDA;
     else device = torch::kCPU;
 
+    cout << device << endl;
+
     //GomokuBoard board = GomokuBoard();
     /*RlGomokuBoard board = RlGomokuBoard();*/
     shared_ptr<MCTSModel> model = make_shared<MCTSModel>();
-    // model->load();
+    //load model
+    // torch::serialize::InputArchive archive;
+    // archive.load_from("net.pt");
+    // model->load(archive);
+    
     model->to(device);
+    // torch::Tensor x = torch::ones({1, 17 ,BOARD_SIZE ,BOARD_SIZE});
+    // for (size_t i = 0; i < 10; i++)
+    // {
+    //     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+    //     pair<torch::Tensor, torch::Tensor> nodeEvaluation = model->forward(x.to(device));
+    //     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+    //     // 计算日期差
+    //     std::chrono::duration<double> diff = end - start;
+    //     // 输出日期差
+    //     std::cout << "one forward is: " << diff.count() << " seconds" << std::endl;
+    //     cout << nodeEvaluation.first.sizes() << nodeEvaluation.second.sizes() << endl;
+    // }
+    
+    
     Trainer trainer = Trainer(model);
     trainer.Train();
     /*RlChessGame game = RlChessGame(&board, BLACK, model);

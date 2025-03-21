@@ -5,53 +5,53 @@
 #include <string>
 #include <torch/torch.h>
 
-#define BOARD_SIZE 15
+#define BOARD_SIZE 9
 #define LAST_NUM 8
 
 using namespace std;
 using namespace torch::indexing;
 
-// Æå×ÓÑÕÉ«Ã¶¾Ù
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«Ã¶ï¿½ï¿½
 enum Color {
-    EMPTY,  // ¿Õ
-    BLACK,  // ºÚÆå
-    WHITE   // °×Æå
+    EMPTY,  // ï¿½ï¿½
+    BLACK,  // ï¿½ï¿½ï¿½ï¿½
+    WHITE   // ï¿½ï¿½ï¿½ï¿½
 };
 
-// ÓÎÏ·½á¹ûÃ¶¾Ù
+// ï¿½ï¿½Ï·ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½
 enum GameResult {
-    BLACK_WIN,  // ºÚÆå»ñÊ¤
-    WHITE_WIN,  // °×Æå»ñÊ¤
-    DRAW,       // Æ½¾Ö
-    NOT_OVER    // ÓÎÏ·Î´½áÊø
+    BLACK_WIN,  // ï¿½ï¿½ï¿½ï¿½ï¿½Ê¤
+    WHITE_WIN,  // ï¿½ï¿½ï¿½ï¿½ï¿½Ê¤
+    DRAW,       // Æ½ï¿½ï¿½
+    NOT_OVER    // ï¿½ï¿½Ï·Î´ï¿½ï¿½ï¿½ï¿½
 };
 
-// ÆåÅÌÀà
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 class GomokuBoard {
 protected:
-    vector<vector<Color>> board;  // 15x15ÆåÅÌ
-    Color currentPlayer;         // µ±Ç°Íæ¼Ò
+    vector<vector<Color>> board;  // 15x15ï¿½ï¿½ï¿½ï¿½
+    Color currentPlayer;         // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½
 
 public:
     GomokuBoard();
     ~GomokuBoard();
-    void InitializeBoard();      // ³õÊ¼»¯ÆåÅÌ
-    void PrintBoard() const;     // ´òÓ¡ÆåÅÌ
-    virtual bool PlacePiece(int row, int col, Color color);  // Âä×Ó
+    void InitializeBoard();      // ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    void PrintBoard() const;     // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½
+    virtual bool PlacePiece(int row, int col, Color color);  // ï¿½ï¿½ï¿½ï¿½
     Color GetPiece(int row, int col) const;
-    bool IsValidMove(int row, int col) const;        // ÅÐ¶ÏÂä×ÓÊÇ·ñºÏ·¨
-    Color GetCurrentPlayer() const;  // »ñÈ¡µ±Ç°Íæ¼Ò
-    void SwitchPlayer();         // ÇÐ»»Íæ¼Ò
+    bool IsValidMove(int row, int col) const;        // ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ï·ï¿½
+    Color GetCurrentPlayer() const;  // ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½
+    void SwitchPlayer();         // ï¿½Ð»ï¿½ï¿½ï¿½ï¿½
 
-    // ÅÐ¶ÏÓÎÏ·ÊÇ·ñ½áÊø£¨½ö¼ì²âµ±Ç°Âä×ÓÎ»ÖÃ£©
+    // ï¿½Ð¶ï¿½ï¿½ï¿½Ï·ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½âµ±Ç°ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ã£ï¿½
     GameResult IsGameOver(int row, int col) const;
 
-    // ÆÀ¹ÀÆåÅÌ×´Ì¬
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
     double EvaluateBoard(GameResult result, Color currentPlayer) const;
 
     static vector<pair<int, int>> GenerateLegalMoves(const GomokuBoard& board, Color player);
 
-    // ÅÐ¶Ïµ±Ç°Âä×ÓÊÇ·ñÐÎ³ÉÎå×ÓÁ¬Öé
+    // ï¿½Ð¶Ïµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Î³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     bool CheckWin(int row, int col, Color color) const;
 
 };
@@ -62,6 +62,6 @@ private:
 
 public:
     RlGomokuBoard();
-    bool PlacePiece(int row, int col, Color color) override;  // Âä×Ó
+    bool PlacePiece(int row, int col, Color color) override;  // ï¿½ï¿½ï¿½ï¿½
     torch::Tensor DumpBoard();
 };

@@ -16,5 +16,5 @@ CMakeSettings.json
 .vs/
 .vscode/
 MCTS
-model/
+model/v
 build/

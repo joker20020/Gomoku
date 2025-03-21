@@ -285,7 +285,15 @@ void RlMCTSNode::Expand() {
     }
 
     auto device = model->parameters()[0].device();
+    // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     pair<torch::Tensor, torch::Tensor> nodeEvaluation = model->forward(evaluateBoard.to(device));
+    // std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+    // // 计算日期差
+    // std::chrono::duration<double> diff = end - start;
+    // // 输出日期差
+    // std::cout << "one forward is: " << diff.count() << " seconds" << std::endl;
+    cout << evaluateBoard.sizes() << endl;
+    
     // 取tensor[0]
     nodeEvaluation.first = model->softMax(nodeEvaluation.first).squeeze();
     nodeEvaluation.second = nodeEvaluation.second.squeeze();
@@ -342,12 +350,19 @@ RlMCTSAI::~RlMCTSAI() {
 // 运行 MCTS
 void RlMCTSAI::Run(int iterations) {
     for (int i = 0; i < iterations; ++i) {
+        // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         //cout << "Iteration: " << i + 1 << "/"  << iterations << '\r';
         MCTSNode* node = Select(root);
         
         if (node->IsGameOver(node->board, node->lastMove.first, node->lastMove.second) == NOT_OVER) {
             node->Expand();
         }
+        // std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+        // // 计算日期差
+        // std::chrono::duration<double> diff = end - start;
+
+        // // 输出日期差
+        // std::cout << "Date difference is: " << diff.count() << " seconds" << std::endl;
     }
 }
 

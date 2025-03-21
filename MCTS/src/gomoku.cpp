@@ -1,61 +1,61 @@
 #include "gomoku.h"
 
-// ¹¹Ôìº¯Êý
+// ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½
 GomokuBoard::GomokuBoard() {
     InitializeBoard();
-    currentPlayer = BLACK;  // ºÚÆåÏÈÊÖ
+    currentPlayer = BLACK;  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 }
 
-// Îö¹¹º¯Êý
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 GomokuBoard::~GomokuBoard() {
-    // ÎÞÐèÌØÊâ´¦Àí
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â´¦ï¿½ï¿½
 }
 
-// ³õÊ¼»¯ÆåÅÌ
+// ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void GomokuBoard::InitializeBoard() {
     board = vector<vector<Color>>(BOARD_SIZE, vector<Color>(BOARD_SIZE, EMPTY));
 }
 
-// ´òÓ¡ÆåÅÌ
+// ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½
 void GomokuBoard::PrintBoard() const {
-    // ´òÓ¡ÁÐ±êÇ©£¨Êý×Ö£¬´Ó0¿ªÊ¼£©
-    cout << "   ";  // ¶ÔÆëÐÐ±êÇ©
+    // ï¿½ï¿½Ó¡ï¿½Ð±ï¿½Ç©ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¼ï¿½ï¿½
+    cout << "   ";  // ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½Ç©
     for (int col = 0; col < BOARD_SIZE; ++col) {
-        cout << " " << setw(2) << col << " ";  // ÁÐ±êÇ©£¨0-14£©£¬¹Ì¶¨¿í¶ÈÎª2
+        cout << " " << setw(2) << col << " ";  // ï¿½Ð±ï¿½Ç©ï¿½ï¿½0-14ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½Îª2
     }
     cout << endl;
 
-    // ´òÓ¡ÆåÅÌÄÚÈÝ
+    // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     for (int row = 0; row < BOARD_SIZE; ++row) {
-        // ´òÓ¡ÐÐ±êÇ©£¨Êý×Ö£¬´Ó0¿ªÊ¼£©
-        cout << setw(2) << row << " ";  // ÐÐ±êÇ©£¨0-14£©£¬¹Ì¶¨¿í¶ÈÎª2
+        // ï¿½ï¿½Ó¡ï¿½Ð±ï¿½Ç©ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¼ï¿½ï¿½
+        cout << setw(2) << row << " ";  // ï¿½Ð±ï¿½Ç©ï¿½ï¿½0-14ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½Îª2
 
-        // ´òÓ¡ÆåÅÌÄÚÈÝ
+        // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         for (int col = 0; col < BOARD_SIZE; ++col) {
             switch (board[row][col]) {
             case EMPTY:
-                cout << " +  ";  // ¿Õ¸ñ±íÊ¾¿ÕÎ»
+                cout << " +  ";  // ï¿½Õ¸ï¿½ï¿½Ê¾ï¿½ï¿½Î»
                 break;
             case BLACK:
-                cout << " B  ";  // ºÚÆå
+                cout << " \033[1;31mB\033[0m  ";  // ï¿½ï¿½ï¿½ï¿½ red
                 break;
             case WHITE:
-                cout << " W  ";  // °×Æå
+                cout << " \033[1;33mW\033[0m  ";  // ï¿½ï¿½ï¿½ï¿½ yellow
                 break;
             }
         }
-        cout << " " << setw(2) << row << endl;  // ÐÐ±êÇ©£¨0-14£©£¬¹Ì¶¨¿í¶ÈÎª2
+        cout << " " << setw(2) << row << endl;  // ï¿½Ð±ï¿½Ç©ï¿½ï¿½0-14ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½Îª2
     }
 
-    // ´òÓ¡ÁÐ±êÇ©£¨Êý×Ö£¬´Ó0¿ªÊ¼£©
-    cout << "   ";  // ¶ÔÆëÐÐ±êÇ©
+    // ï¿½ï¿½Ó¡ï¿½Ð±ï¿½Ç©ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¼ï¿½ï¿½
+    cout << "   ";  // ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½Ç©
     for (int col = 0; col < BOARD_SIZE; ++col) {
-        cout << " " << setw(2) << col << " ";  // ÁÐ±êÇ©£¨0-14£©£¬¹Ì¶¨¿í¶ÈÎª2
+        cout << " " << setw(2) << col << " ";  // ï¿½Ð±ï¿½Ç©ï¿½ï¿½0-14ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½Îª2
     }
     cout << endl;
 }
 
-// Âä×Ó
+// ï¿½ï¿½ï¿½ï¿½
 bool GomokuBoard::PlacePiece(int row, int col, Color color) {
     if (!IsValidMove(row, col)) return false;
     board[row][col] = color;
@@ -66,22 +66,22 @@ Color GomokuBoard::GetPiece(int row, int col) const{
     return board[row][col];
 }
 
-// ÅÐ¶ÏÂä×ÓÊÇ·ñºÏ·¨
+// ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ï·ï¿½
 bool GomokuBoard::IsValidMove(int row, int col) const {
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return false;
     return board[row][col] == EMPTY;
 }
 
-// ÅÐ¶Ïµ±Ç°Âä×ÓÊÇ·ñÐÎ³ÉÎå×ÓÁ¬Öé
+// ï¿½Ð¶Ïµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Î³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 bool GomokuBoard::CheckWin(int row, int col, Color color) const {
-    // ¼ì²éËÄ¸ö·½Ïò£ºË®Æ½¡¢´¹Ö±¡¢¶Ô½ÇÏß£¨×óÉÏµ½ÓÒÏÂ£©¡¢¶Ô½ÇÏß£¨ÓÒÉÏµ½×óÏÂ£©
+    // ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½Ë®Æ½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½Ô½ï¿½ï¿½ß£ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½Â£ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ï¿½ß£ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½Â£ï¿½
     int directions[4][2] = { {1, 0}, {0, 1}, {1, 1}, {1, -1} };
 
     for (auto dir : directions) {
-        int count = 1;  // µ±Ç°Æå×Ó
+        int count = 1;  // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½
         int dx = dir[0], dy = dir[1];
 
-        // ÏòÒ»¸ö·½ÏòËÑË÷
+        // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         for (int i = 1; i < 5; ++i) {
             int newRow = row + i * dx;
             int newCol = col + i * dy;
@@ -90,7 +90,7 @@ bool GomokuBoard::CheckWin(int row, int col, Color color) const {
             count++;
         }
 
-        // ÏòÏà·´·½ÏòËÑË÷
+        // ï¿½ï¿½ï¿½à·´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         for (int i = 1; i < 5; ++i) {
             int newRow = row - i * dx;
             int newCol = col - i * dy;
@@ -99,33 +99,33 @@ bool GomokuBoard::CheckWin(int row, int col, Color color) const {
             count++;
         }
 
-        if (count >= 5) return true;  // Îå×ÓÁ¬Öé
+        if (count >= 5) return true;  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     }
 
     return false;
 }
 
-// »ñÈ¡µ±Ç°Íæ¼Ò
+// ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½
 Color GomokuBoard::GetCurrentPlayer() const {
     return currentPlayer;
 }
 
-// ÇÐ»»Íæ¼Ò
+// ï¿½Ð»ï¿½ï¿½ï¿½ï¿½
 void GomokuBoard::SwitchPlayer() {
     currentPlayer = (currentPlayer == BLACK) ? WHITE : BLACK;
 }
 
-// ÅÐ¶ÏÓÎÏ·ÊÇ·ñ½áÊø£¨½ö¼ì²âµ±Ç°Âä×ÓÎ»ÖÃ£©
+// ï¿½Ð¶ï¿½ï¿½ï¿½Ï·ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½âµ±Ç°ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ã£ï¿½
 GameResult GomokuBoard::IsGameOver(int row, int col) const {
     Color color = board[row][col];
-    if (color == EMPTY) return NOT_OVER;  // Èç¹ûµ±Ç°Î»ÖÃÎª¿Õ£¬ÓÎÏ·Î´½áÊø
+    if (color == EMPTY) return NOT_OVER;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ç°Î»ï¿½ï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½Ï·Î´ï¿½ï¿½ï¿½ï¿½
 
-    // ¼ì²éµ±Ç°Âä×ÓÊÇ·ñÐÎ³ÉÎå×ÓÁ¬Öé
+    // ï¿½ï¿½éµ±Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Î³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (CheckWin(row, col, color)) {
         return (color == BLACK) ? BLACK_WIN : WHITE_WIN;
     }
 
-    // ¼ì²éÆåÅÌÊÇ·ñÒÑÂú£¨Æ½¾Ö£©
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ½ï¿½Ö£ï¿½
     bool isBoardFull = true;
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -139,20 +139,20 @@ GameResult GomokuBoard::IsGameOver(int row, int col) const {
 
     if (isBoardFull) return DRAW;
 
-    return NOT_OVER;  // ÓÎÏ·Î´½áÊø
+    return NOT_OVER;  // ï¿½ï¿½Ï·Î´ï¿½ï¿½ï¿½ï¿½
 }
 
-// ÆÀ¹ÀÆåÅÌ×´Ì¬
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
 double GomokuBoard::EvaluateBoard(GameResult result, Color currentPlayer) const {
     if (result == BLACK_WIN && currentPlayer == BLACK) return -1.0;
     else if (result == WHITE_WIN && currentPlayer == WHITE) return -1.0;
     else if (result == BLACK_WIN && currentPlayer == WHITE) return 1.0;
     else if (result == WHITE_WIN && currentPlayer == BLACK) return 1.0;
     else if (result == DRAW) return 0.0;
-    else return 0.0;  // ÓÎÏ·Î´½áÊø£¬·µ»Ø0
+    else return 0.0;  // ï¿½ï¿½Ï·Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0
 }
 
-// Éú³ÉºÏ·¨ÒÆ¶¯
+// ï¿½ï¿½ï¿½ÉºÏ·ï¿½ï¿½Æ¶ï¿½
 vector<pair<int, int>> GomokuBoard::GenerateLegalMoves(const GomokuBoard& board, Color player){
     vector<pair<int, int>> moves;
     for (int row = 0; row < BOARD_SIZE; ++row) {
@@ -169,7 +169,7 @@ vector<pair<int, int>> GomokuBoard::GenerateLegalMoves(const GomokuBoard& board,
 RlGomokuBoard::RlGomokuBoard():GomokuBoard() {
 }
 
-// Âä×Ó
+// ï¿½ï¿½ï¿½ï¿½
 bool RlGomokuBoard::PlacePiece(int row, int col, Color color) {
     if (GomokuBoard::PlacePiece(row, col, color))
     {
