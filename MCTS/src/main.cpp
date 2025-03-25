@@ -29,23 +29,23 @@ void ParseArgs(int argc, char *argv[], Args (&args)[], int argCount);
 int main(int argc, char *argv[]) {
 
     Args args[] = {
-        {'m', "model", VALUE_OPTIONAL, false, "", "model/model0.pt"},
+        {'m', "model", VALUE_OPTIONAL, false, "", ""},
         {'d', "directory", VALUE_OPTIONAL, false, "", "model"},
-        {'n', "num", VALUE_REQUIRED, false, "", "8"},
-        {'t', "test", VALUE_NONE, false, "", ""}
+        {'n', "num", VALUE_OPTIONAL, false, "", "8"},
     };
 
-    ParseArgs(argc, argv, args, 4);
-    cout << args[0].longname << ": value=" << args[0].value  << " has="  << args[0].has << endl;
-    cout << args[1].longname << ": value=" << args[1].value  << " has="  << args[1].has << endl;
-    cout << args[2].longname << ": value=" << args[2].value  << " has="  << args[2].has << endl;
-    cout << args[3].longname << ": value=" << args[3].value  << " has="  << args[3].has << endl;
+    ParseArgs(argc, argv, args, 3);
+    string modelPath = args[0].value;
+    string savePath = args[1].value;
+    int modelNum = stoi(args[2].value);
+    
+    cout << "using model:" << modelPath << " |save to:" << savePath << " | model pool num:" << modelNum << endl;
 
     torch::Device device = torch::Device(torch::kCPU);
     if (torch::cuda::is_available()) device = torch::kCUDA;
     else device = torch::kCPU;
 
-    cout << device << endl;
+    cout << "using device:" <<  device << endl;
     // cout << argv[1] << endl;
     
 
@@ -54,12 +54,12 @@ int main(int argc, char *argv[]) {
     /*shared_ptr<MCTSModel> model1 = make_shared<MCTSModel>();
     shared_ptr<MCTSModel> model2 = make_shared<MCTSModel>();*/
 
-    auto pool = make_shared<MCTSModelPool>(8);
-    pool->Load("model/model0.pt");
+    auto pool = make_shared<MCTSModelPool>(modelNum);
+    if (modelPath != "") pool->Load(modelPath);
     pool->to(device);
 
     Trainer trainer = Trainer(pool);
-    trainer.Train();
+    trainer.Train(savePath);
     
     //model->to(device);
     // torch::Tensor x = torch::ones({1, 17 ,BOARD_SIZE ,BOARD_SIZE});
@@ -84,10 +84,11 @@ int main(int argc, char *argv[]) {
 
 void ParseArgs(int argc, char *argv[], Args (&args)[], int argCount){
     for(size_t i = 0; i < argCount; i++){
-        for (size_t j = 0; j < argc; j++)
-        {
+        if(args[i].type == VALUE_OPTIONAL) args[i].value = args[i].defaultValue;
+        for (size_t j = 0; j < argc; j++){
             if(argv[j][0] == '-'){
-                if(argv[j][1] == args[i].shortcut || argv[j] == ("-" + args[i].longname)){
+                if(argv[j][1] == args[i].shortcut || argv[j] == ("--" + args[i].longname)){
+                    // cout << "found arg:" << args[i].longname << endl;
                     switch (args[i].type)
                     {
                     case VALUE_NONE:

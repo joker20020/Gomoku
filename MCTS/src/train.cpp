@@ -35,10 +35,12 @@ void Trainer::Train(string savePath) {
     pTensors = torch::tensor({});
     vTensors = torch::tensor({});
 
+    int64_t oldNum = 0;
+    int64_t newNum = 0;
+
     for (size_t i = 0; i < selfPlayTimes; i++)
     {
-        int64_t oldNum = 0;
-        int64_t newNum = 0;
+        
         while (boardTensors.size(0) < dataSize)
         {
             shared_ptr<RlGomokuBoard> board = make_shared<RlGomokuBoard>();
@@ -60,7 +62,7 @@ void Trainer::Train(string savePath) {
             // cout << "v OK" << endl;
             newNum = boardTensors.size(0);
             // data augmente
-            for (size_t dataCount = 0; dataCount < newNum - oldNum; dataCount++)
+            for (size_t dataCount = oldNum; dataCount < newNum; dataCount++)
             {
                 // rot 90
                 boardTensors = torch::cat({ boardTensors, torch::rot90(boardTensors[dataCount], 1, {1, 2}).unsqueeze(0)}, 0);
@@ -86,9 +88,9 @@ void Trainer::Train(string savePath) {
                 pTensors = torch::cat({pTensors, torch::flip(pTensors[dataCount], {0}).unsqueeze(0)}, 0);
                 vTensors = torch::cat({vTensors, vTensors[dataCount].unsqueeze(0)}, 0);
             }
-            oldNum = newNum;
-            
+            oldNum = boardTensors.size(0);  
         }
+
 
         cout << "Total data size: " << boardTensors.size(0) << '\n';
 
@@ -146,6 +148,7 @@ void Trainer::Train(string savePath) {
         boardTensors = boardTensors.index({Slice(-memorySize, None)});
         pTensors = pTensors.index({Slice(-memorySize, None)}).reshape({boardTensors.size(0), BOARD_SIZE, BOARD_SIZE});
         vTensors = vTensors.index({Slice(-memorySize, None)});
+        oldNum = memorySize;
 
         modelPool->ReleaseModel(modelIndex);
         modelPool->Sync(modelIndex);
