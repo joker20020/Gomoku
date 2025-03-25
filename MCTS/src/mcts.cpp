@@ -97,7 +97,7 @@ double MCTSNode::Simulate() {
 
 // 回溯更新节点
 void MCTSNode::Backpropagate(double score) {
-    visitCount.fetch_add(1);
+    visitCount.store(visitCount + 1);
     totalScore.store(totalScore + score);
     virtualLoss.store(virtualLoss + 1);
     if (!IsRoot()) parent->Backpropagate(-score);
@@ -185,7 +185,7 @@ void MCTSAI::ParallelRun(int iterations, int threadNum) {
 }
 
 // 选择最佳移动
-pair<int, int> MCTSAI::GetBestMove(bool random) {
+pair<int, int> MCTSAI::GetBestMove(double t, bool random) {
     MCTSNode* bestChild = *max_element(root->children.begin(), root->children.end(), [](MCTSNode* a, MCTSNode* b) {
         return a->visitCount < b->visitCount;
     });
@@ -376,21 +376,28 @@ void RlMCTSAI::Run(int iterations) {
     }
 }
 
-pair<int, int> RlMCTSAI::GetBestMove(bool random) {
+pair<int, int> RlMCTSAI::GetBestMove(double t, bool random) {
     if (random) {
         std::vector<double> weights = {};
         for(auto child : root->children){
             weights.push_back(child->visitCount.load());
         }
+        torch::Tensor weightsTensor = torch::from_blob(weights.data(), {(long int)weights.size()}, torch::kDouble);
+        weightsTensor = weightsTensor.pow(1 / t);
+        torch::Tensor weightsSum = weightsTensor.sum();
+        weightsTensor = weightsTensor / weightsSum;
+        vector<double> pi(weightsTensor.data_ptr<double>(), weightsTensor.data_ptr<double>() + weightsTensor.numel());
 
         // 创建随机数生成器
         std::random_device rd;
         std::mt19937 gen(rd());
+        // cout << pi << endl;
 
         // 创建带权重的分布
-        std::discrete_distribution<> dist(weights.begin(), weights.end());
+        std::discrete_distribution<> dist(pi.begin(), pi.end());
 
         int random_number = dist(gen);
+        // cout << random_number << endl;
         
         return root->children[random_number]->GetLastMove();
     }

@@ -23,7 +23,11 @@ Trainer::Trainer(shared_ptr<MCTSModelPool> modelPool, int selfPlayTimes, int epo
     this->selfPlayTimes = selfPlayTimes;
 }
 
-void Trainer::Train() {
+void Trainer::Train(string savePath) {
+    std::filesystem::path path(savePath);
+    if (!std::filesystem::exists(path)) {
+        std::filesystem::create_directory(path);
+    }
     int memorySize = 1024;
     int dataSize = 2048;
     torch::Tensor boardTensors, pTensors, vTensors;
@@ -33,6 +37,8 @@ void Trainer::Train() {
 
     for (size_t i = 0; i < selfPlayTimes; i++)
     {
+        int64_t oldNum = 0;
+        int64_t newNum = 0;
         while (boardTensors.size(0) < dataSize)
         {
             shared_ptr<RlGomokuBoard> board = make_shared<RlGomokuBoard>();
@@ -49,10 +55,12 @@ void Trainer::Train() {
             // cout << vTensors.sizes() << endl;
             // cout << trainResult.second.second.sizes() << endl;
             vTensors = torch::cat({vTensors, trainResult.second.second}, 0);
+            // cout << pTensors << endl;
+            // cout << vTensors << endl;
             // cout << "v OK" << endl;
-            int64_t originCount = boardTensors.size(0);
+            newNum = boardTensors.size(0);
             // data augmente
-            for (size_t dataCount = originCount - memorySize; dataCount < originCount; dataCount++)
+            for (size_t dataCount = 0; dataCount < newNum - oldNum; dataCount++)
             {
                 // rot 90
                 boardTensors = torch::cat({ boardTensors, torch::rot90(boardTensors[dataCount], 1, {1, 2}).unsqueeze(0)}, 0);
@@ -78,6 +86,7 @@ void Trainer::Train() {
                 pTensors = torch::cat({pTensors, torch::flip(pTensors[dataCount], {0}).unsqueeze(0)}, 0);
                 vTensors = torch::cat({vTensors, vTensors[dataCount].unsqueeze(0)}, 0);
             }
+            oldNum = newNum;
             
         }
 
@@ -120,15 +129,16 @@ void Trainer::Train() {
                 optimizer.step();
                 // Output the loss and checkpoint every 100 batches.
                 if (i % 5 == 0) {
-                    std::cout << "Epoch: " << j << " | Self play: " << i
-                        << " | Loss: " << totalLoss.item<float>() << std::endl;
+                    std::cout << "Epoch: " << j << " | Self play: " << i << " | total loss: " << totalLoss.item<float>() << " | Mse loss: " << mseLoss.item<float>() << " | Cre loss: " << creLoss.item<float>() << std::endl;
                     // Serialize your model periodically as a checkpoint.
-                    // std::stringstream modelName;
-                    // modelName << "model/net";
-                    // modelName << i;
-                    // modelName << ".pt";
-                    // torch::save(model, modelName.str());
-                    torch::save(model, "net.pt");
+                    std::stringstream modelName;
+                    modelName << (path / std::filesystem::path("model")).string();
+                    modelName << i;
+                    modelName << ".pt";
+                    cout << "Saving model to " << modelName.str() << endl;
+                    string modelNameStr = modelName.str();
+                    torch::save(model, modelNameStr);
+                    // torch::save(model, "net.pt");
                 }
             }
         }

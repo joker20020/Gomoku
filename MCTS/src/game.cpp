@@ -173,6 +173,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
     
     int row, col;
     bool gameOver = false;
+    double t = 1;
     vector<Color> history = {};
     torch::Tensor boardTensor, pTensor, vTensor, pTemp;
     GameResult result;
@@ -198,12 +199,12 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         // 输出日期差
         std::cout << "one forward is: " << diff.count() << " seconds" << std::endl;
         
-        if(round < 5){
-            bestMove = ai->GetBestMove(true);
-            cout << "random" << endl;
+        if(round > 20){
+            t = 1e-1;
+            bestMove = ai->GetBestMove(t);
         }
         else{
-            bestMove = ai->GetBestMove();
+            bestMove = ai->GetBestMove(t);
         }
         round++;
         row = bestMove.first;
@@ -214,9 +215,18 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
         if (board->PlacePiece(row, col, currentPlayer)) {
             
             pTemp = torch::zeros({1, BOARD_SIZE, BOARD_SIZE});
+            torch::Tensor countTensor = torch::zeros({BOARD_SIZE, BOARD_SIZE});
             for (auto child : ai->root->children){
-                pTemp[0][child->lastMove.first][child->lastMove.second] = (child->visitCount.load() / ai->root->visitCount.load());
+                countTensor[child->lastMove.first][child->lastMove.second] = child->visitCount.load() ;
             }
+            countTensor = countTensor.pow(1 / t);
+            torch::Tensor sumTensor = countTensor.sum();
+            for (auto child : ai->root->children)
+            {
+                pTemp[0][child->lastMove.first][child->lastMove.second] = countTensor[child->lastMove.first][child->lastMove.second] / sumTensor;
+            }
+            
+            // cout << pTemp << endl;
             if (pTensor.size(0) == 0)
             {
                 pTensor = pTemp.clone();
@@ -224,6 +234,7 @@ pair<torch::Tensor, pair<torch::Tensor, torch::Tensor>> RlChessGame::TrainStart(
             else {
                 pTensor = torch::cat({ pTensor, pTemp });
             }
+            // cout << pTensor << endl;
             
 
             result = board->IsGameOver(row, col);

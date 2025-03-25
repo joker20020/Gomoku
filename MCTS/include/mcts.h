@@ -24,7 +24,7 @@ public:
     Color currentPlayer; // 当前玩家
     MCTSNode* parent; // 父节点
     vector<MCTSNode*> children; // 子节点
-    atomic<int> visitCount; // 访问次数
+    atomic<double> visitCount; // 访问次数
     atomic<double> totalScore; // 总得分
     atomic<double> virtualLoss; // 虚拟损失
     recursive_mutex mtx;
@@ -91,7 +91,7 @@ public:
 
 
     // 选择最佳移动
-    virtual pair<int, int> GetBestMove(bool random = false);
+    virtual pair<int, int> GetBestMove(double t=1, bool random = true);
 
     // 自动更新节点
     virtual void AutoUpdate();
@@ -137,7 +137,7 @@ public:
     ~RlMCTSAI();
     // 运行 MCTS
     void Run(int iterations) override;
-    pair<int, int> GetBestMove(bool random = false) override;
+    pair<int, int> GetBestMove(double t=1, bool random = true) override;
     void Update(pair<int, int> move) override;
     
 };
