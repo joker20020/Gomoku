@@ -1,7 +1,6 @@
 ﻿#include <ctime>
 #include <cstdlib>
 #include <torch/torch.h>
-#include <unistd.h>
 
 #include "mcts.h"
 #include "game.h"
@@ -85,7 +84,7 @@ int main(int argc, char *argv[]) {
 
 void ParseArgs(int argc, char *argv[], Args (&args)[], int argCount){
     for(size_t i = 0; i < argCount; i++){
-        for (size_t j = 0; j < argc; i++)
+        for (size_t j = 0; j < argc; j++)
         {
             if(argv[j][0] == '-'){
                 if(argv[j][1] == args[i].shortcut || argv[j] == ("-" + args[i].longname)){
