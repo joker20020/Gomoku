@@ -1,10 +1,34 @@
 # Description
 A simple Reinforcement Learning MCTS with c++
 
+# Usage
+## clone the repo
+```powershell
+git clone https://github.com/joker20020/Gomoku.git
+```
+
+## download libtorch
+download libtorch from [here](https://pytorch.org/)
+
+## build
+- modify `CMakeLists.txt` in `line7、9、9`(on linux) or `line12、13、14`(on windows)
+- use cmake to build MakeFile
+- make
+
+## run
+```powershell
+./MCTS -m modelPath -d saveDirectory -n modelPoolNumber
+```
+- `-m` or `--model`: the path of the model to load
+- `-d` or `--directory`: the directory to save the model
+- `-n` or `--num`: the number of models in the model pool
+
 # Fix Nvtool
 ## Windows
 ```powershell
-�ڵ� 59 �� find_package(CUDAToolkit REQUIRED) ֮�������������ݣ�
+#find line 
+find_package(CUDAToolkit REQUIRED)
+#add after
 add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
 set_property(TARGET CUDA::nvToolsExt APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CUDAToolkit_INCLUDE_DIRS}")
 ```
