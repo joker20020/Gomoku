@@ -13,6 +13,7 @@ CMakeUserPresets.json
 out/
 CMakePresets.json
 CMakeSettings.json
+CMakeListsBackup.txt
 .vs/
 .vscode/
 MCTS
